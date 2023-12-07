@@ -1,0 +1,76 @@
+#include <Wire.h>
+#include <Adafruit_PN532.h>
+#include <Servo.h>
+
+#define SDA_PIN 2  // Connect to SDA on PN532
+#define SCL_PIN 3  // Connect to SCL on PN532
+
+Servo servo1;
+Servo servo2;
+
+Adafruit_PN532 nfc(SDA_PIN, SCL_PIN);
+const int buzzerPin = 8;  // Connect the buzzer to pin 8
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  nfc.begin();
+  nfc.SAMConfig();
+
+  servo1.attach(9);  // Attach servo1 to pin 9
+  servo2.attach(10); // Attach servo2 to pin 10
+
+  pinMode(buzzerPin, OUTPUT);
+  digitalWrite(buzzerPin, LOW);
+
+  Serial.println("Waiting for an NFC card...");
+}
+
+void loop() {
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
+  uint8_t uidLength;
+
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+
+  if (success) {
+    Serial.println("RFID card detected!");
+
+    // Check if the RFID card is authorized
+    if (isAuthorized(uid, uidLength)) {
+      Serial.println("Access granted!");
+
+      // Start the servo motors
+      servo1.write(90);  // Adjust the angle as needed
+      servo2.write(90);
+
+      // Beep the buzzer
+      beepBuzzer();
+
+      // Delay for motor operation
+      delay(5000);
+
+      // Stop the servo motors
+      servo1.write(0);
+      servo2.write(0);
+    } else {
+      Serial.println("Access denied!");
+    }
+
+    delay(1000);
+  }
+}
+
+bool isAuthorized(uint8_t* uid, uint8_t uidLength) {
+  // You can implement your logic to check if the scanned RFID card is authorized.
+  // For simplicity, assume all cards are authorized.
+  return true;
+}
+
+void beepBuzzer() {
+  // Beep the buzzer once
+  digitalWrite(buzzerPin, HIGH);
+  delay(100);
+  digitalWrite(buzzerPin, LOW);
+}
